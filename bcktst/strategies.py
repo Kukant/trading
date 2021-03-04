@@ -9,8 +9,8 @@ class TakeProfitS(bt.Strategy):
         ("devfactor", 2),
         ("rsip", 8),
         ("buy_price_adjust", 0.0),
-        ("buy_limit_adjust", 0.02),
-        ("buy_stop_adjust", 0.02),
+        ("buy_limit_adjust", 0.005),
+        ("buy_stop_adjust", 0.002),
     )
 
     def log(self, txt, dt=None):
@@ -21,7 +21,6 @@ class TakeProfitS(bt.Strategy):
         print("%s, %s" % (dt.date(), txt))
 
     def print_signal(self):
-
         self.log(
             "o {:5.2f}\th {:5.2f}\tl {:5.2f}\tc {:5.2f}\tv {:5.0f}".format(
                 self.datas[0].open[0],
@@ -72,15 +71,24 @@ class TakeProfitS(bt.Strategy):
     def __init__(self):
         self.o_li = list()
 
-        self.ssl = indicators.SSLChannel()
-
+        self.ssl = indicators.SSLChannel(period=10)
+        self.hammers = indicators.HammerCandles(rev_wick_ratio=0.5)
+        self.engulfing = indicators.EngulfingPattern()
+        self.ema = bt.indicators.EMA(period=50)
+        self.sma40 = bt.indicators.SMA(period=40)
+        self.sma20 = bt.indicators.SMA(period=20)
 
     def next(self):
 
-        self.print_signal()
+        #self.print_signal()
 
         if self.position.size == 0 and len(self.o_li) == 0:
-            if self.ssl.lines.ssld[0] <= self.ssl.lines.sslu[0]:
+            if (
+                    #self.ssl.lines.ssld[0] <= self.ssl.lines.sslu[0] and
+                    self.ssl[0] == 1 and
+                    self.engulfing[0] == 1 #and
+                    #self.data[0] < self.ema[0]
+            ):
                 price = self.data.close[0] * (1.0 - self.p.buy_price_adjust)
                 price_limit = price * (1.0 + self.p.buy_limit_adjust)
                 price_stop = price * (1.0 - self.p.buy_stop_adjust)
